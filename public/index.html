@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart AI Humanizer | Bypass GPTZero & Turnitin</title>
+    <meta name="description" content="Humanize AI text naturally. No API required. 100% free & private.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">Smart Humanizer</span>
+                <span class="badge">No API</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#faq">FAQ</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Humanize AI Text <span class="gradient">Naturally</span></h1>
+            <p class="hero-subtitle">No API calls. 100% private. Works offline. Bypass GPTZero, Turnitin & ZeroGPT.</p>
+            <div class="trust-badges">
+                <span>✅ 100% Free</span>
+                <span>🔒 No Data Stored</span>
+                <span>⚡ Instant Results</span>
+                <span>🧠 Smart Algorithms</span>
+            </div>
+        </section>
+
+        <div class="tool-container">
+            <div class="tool-header">
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-tone="casual">😊 Casual</button>
+                    <button class="mode-btn" data-tone="professional">💼 Professional</button>
+                    <button class="mode-btn" data-tone="academic">📚 Academic</button>
+                </div>
+                <div class="intensity-slider">
+                    <label>🔥 Intensity: <span id="intensityValue">70</span>%</label>
+                    <input type="range" id="intensitySlider" min="0" max="100" value="70">
+                </div>
+            </div>
+
+            <div class="tool-grid">
+                <div class="input-panel">
+                   <div class="panel-header">
+    <span>🤖 AI-Generated Text</span>
+    <span id="wordCount" class="char-count">0 / 3000 words</span>
+</div>
+                    </div>
+                    <textarea id="inputText" placeholder="Paste your AI-generated text from ChatGPT, Claude, Gemini, or any AI model here..."></textarea>
+                    <div class="panel-actions">
+                        <button class="btn-secondary" id="clearBtn">🗑️ Clear</button>
+                        <button class="btn-secondary" id="exampleBtn">📋 Load Example</button>
+                    </div>
+                </div>
+
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <span>✨ Humanized Output</span>
+                        <button class="copy-btn" id="copyBtn">📋 Copy</button>
+                    </div>
+                    <div id="outputText" class="output-content">
+                        <div class="placeholder">
+                            <span>✨</span>
+                            <p>Your humanized text will appear here</p>
+                            <small>No API calls - 100% local processing</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn-primary" id="humanizeBtn">
+                    <span>🎯</span> Humanize Now
+                    <span>⚡</span>
+                </button>
+            </div>
+
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar"></div>
+                <div class="progress-text">Processing with Smart Humanizer...</div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="originalWords">0</div>
+                <div class="stat-label">Original Words</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="humanizedWords">0</div>
+                <div class="stat-label">Humanized Words</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="changesCount">0</div>
+                <div class="stat-label">Transformations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uniquenessScore">0%</div>
+                <div class="stat-label">Uniqueness Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="processingTime">0ms</div>
+                <div class="stat-label">Processing Time</div>
+            </div>
+            <div class="stat-card">
+    <div class="stat-value" id="perplexityScore">0%</div>
+    <div class="stat-label">Perplexity Score</div>
+</div>
+        </div>
+
+        <section id="features" class="features">
+            <h2>Why Choose Smart Humanizer</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>100% Private</h3>
+                    <p>No API calls. All processing happens locally in your browser. Your text never leaves your device.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Results</h3>
+                    <p>Get humanized text in milliseconds. No waiting, no queues, no rate limits.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🆓</div>
+                    <h3>Completely Free</h3>
+                    <p>No credit card, no signup, no premium tiers. Free forever.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Smart Algorithms</h3>
+                    <p>Burstiness, sentence variation, synonym replacement, and natural flow optimization.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Paste AI Text</h3>
+                    <p>Copy your AI-generated content from any source</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Choose Style</h3>
+                    <p>Select Casual, Professional, or Academic tone</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Adjust Intensity</h3>
+                    <p>Control how aggressive the humanization should be</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Get Result</h3>
+                    <p>Copy and use your natural-sounding human text</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="faq">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">Will this bypass GPTZero?</div>
+                    <div class="faq-answer">Our smart algorithms use burstiness, sentence variation, and natural fillers to make text more human-like. While no tool can guarantee 100% bypass, users report significantly lower AI detection scores.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Is my data private?</div>
+                    <div class="faq-answer">Absolutely! All processing happens locally in your browser. No API calls, no data storage, complete privacy.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Do I need an API key?</div>
+                    <div class="faq-answer">No! This tool works completely offline without any API keys or external services.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">What's the character limit?</div>
+                    <div class="faq-answer">You can humanize up to 10,000 characters per request. For longer texts, process in chunks.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 Smart Humanizer - Humanize AI Text Naturally</p>
+        <p class="footer-note">No API required. 100% private. Works offline.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
