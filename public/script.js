@@ -42,7 +42,7 @@ function updateWordCount() {
         humanizeBtn.disabled = true;
         humanizeBtn.style.opacity = '0.5';
     } else {
-        wordCountSpan.style.color = '#64748b';
+        wordCountSpan.style.color = '#ffffff';
         humanizeBtn.disabled = false;
         humanizeBtn.style.opacity = '1';
     }
@@ -166,41 +166,118 @@ function clearFields() {
     updateWordCount();
 }
 
-// Copy output
-async function copyOutput() {
-    const outputText = outputDiv.innerText;
-    if (outputText && !outputText.includes('Your humanized text will appear here')) {
-        try {
-            await navigator.clipboard.writeText(outputText);
-            const originalText = copyBtn.textContent;
-            copyBtn.textContent = '✅ Copied!';
-            setTimeout(() => {
-                copyBtn.textContent = originalText;
-            }, 2000);
-        } catch (err) {
-            alert('Failed to copy. You can manually select and copy the text.');
-        }
+// ========== FIXED COPY BUTTON FUNCTION ==========
+function copyOutput() {
+    console.log('Copy button clicked!'); // Debug log
+    
+    // Get all text from output div
+    let outputText = '';
+    
+    // Check if there are paragraphs in the output
+    const paragraphs = outputDiv.querySelectorAll('p');
+    
+    if (paragraphs.length > 0 && !outputDiv.querySelector('.placeholder')) {
+        // Extract text from all paragraphs
+        paragraphs.forEach(p => {
+            outputText += p.innerText + '\n\n';
+        });
+        outputText = outputText.trim();
     } else {
+        // Get direct text content
+        outputText = outputDiv.innerText || outputDiv.textContent;
+    }
+    
+    // Check if there's actual content (not placeholder)
+    const isPlaceholder = outputText.includes('Your humanized text will appear here') || 
+                          outputText.includes('Click "Humanize Now"') ||
+                          outputText === '' ||
+                          outputText === '✨';
+    
+    if (!outputText || isPlaceholder) {
         alert('Nothing to copy. Please humanize some text first.');
+        return;
+    }
+    
+    // Method 1: Modern Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(outputText).then(() => {
+            showCopySuccess();
+        }).catch(err => {
+            console.error('Clipboard API failed:', err);
+            fallbackCopyText(outputText);
+        });
+    } else {
+        // Method 2: Fallback for older browsers
+        fallbackCopyText(outputText);
     }
 }
 
-// FAQ toggle
-function initFaq() {
-    const faqItems = document.querySelectorAll('.faq-item');
-    faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        question.addEventListener('click', () => {
-            item.classList.toggle('open');
-        });
-    });
+// Show success feedback on button
+function showCopySuccess() {
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = '✅ Copied!';
+    copyBtn.style.background = '#4fa80f';
+    copyBtn.style.color = 'white';
+    copyBtn.style.border = 'none';
+    
+    setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.background = '';
+        copyBtn.style.color = '';
+        copyBtn.style.border = '';
+    }, 2000);
 }
 
-// Event listeners
+// Fallback copy method using textarea
+function fallbackCopyText(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        } else {
+            alert('Press Ctrl+C to copy the text.');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Please select and copy the text manually.');
+    }
+    
+    document.body.removeChild(textarea);
+}
+
+// FAQ toggle - Fixed for inline onclick
+function initFaq() {
+    // No need for this since FAQ uses inline onclick
+    console.log('FAQ initialized');
+}
+
+// ========== EVENT LISTENERS ==========
 humanizeBtn.addEventListener('click', humanizeText);
 clearBtn.addEventListener('click', clearFields);
-exampleBtn.addEventListener('click', loadExample);
-copyBtn.addEventListener('click', copyOutput);
+if (exampleBtn) exampleBtn.addEventListener('click', loadExample);
+
+// IMPORTANT: Properly attach copy button event
+if (copyBtn) {
+    // Remove any existing listeners by cloning and replacing
+    const newCopyBtn = copyBtn.cloneNode(true);
+    copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
+    
+    // Add fresh event listener to the new button
+    newCopyBtn.addEventListener('click', copyOutput);
+    console.log('Copy button event listener attached successfully');
+} else {
+    console.error('Copy button not found!');
+}
 
 // Keyboard shortcut
 inputTextarea.addEventListener('keydown', (e) => {

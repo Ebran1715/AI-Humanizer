@@ -12,10 +12,11 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <span class="logo-icon">🧠</span>
-                <span class="logo-text">Smart Humanizer</span>
-                <span class="badge">No API</span>
-            </div>
+    <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+        <span class="logo-icon"></span>
+        <span class="logo-text">Smart Humanizer</span>
+    </a>
+</div>
             <div class="nav-links">
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How It Works</a>
@@ -27,52 +28,54 @@
     <main class="container">
         <section class="hero">
             <h1>Humanize AI Text <span class="gradient">Naturally</span></h1>
-            <p class="hero-subtitle">No API calls. 100% private. Works offline. Bypass GPTZero, Turnitin & ZeroGPT.</p>
+            <p class="hero-subtitle">Bypass GPTZero, Turnitin & ZeroGPT.</p>
             <div class="trust-badges">
-                <span>✅ 100% Free</span>
-                <span>🔒 No Data Stored</span>
-                <span>⚡ Instant Results</span>
-                <span>🧠 Smart Algorithms</span>
+                <span> 100% Free</span>
+                <span> No Data Stored</span>
+                <span>Instant Results</span>
+                <span> Smart Algorithms</span>
             </div>
         </section>
 
         <div class="tool-container">
             <div class="tool-header">
                 <div class="mode-selector">
-                    <button class="mode-btn active" data-tone="casual">😊 Casual</button>
-                    <button class="mode-btn" data-tone="professional">💼 Professional</button>
-                    <button class="mode-btn" data-tone="academic">📚 Academic</button>
+                    <button class="mode-btn active" data-tone="casual"> Casual</button>
+                    <button class="mode-btn" data-tone="professional">Professional</button>
+                    <button class="mode-btn" data-tone="academic">Academic</button>
                 </div>
                 <div class="intensity-slider">
-                    <label>🔥 Intensity: <span id="intensityValue">70</span>%</label>
+                    <label>Intensity: <span id="intensityValue">70</span>%</label>
                     <input type="range" id="intensitySlider" min="0" max="100" value="70">
                 </div>
             </div>
 
             <div class="tool-grid">
+                <!-- INPUT PANEL - FIXED: removed extra closing div -->
                 <div class="input-panel">
-                   <div class="panel-header">
-    <span>🤖 AI-Generated Text</span>
-    <span id="wordCount" class="char-count">0 / 3000 words</span>
-</div>
+                    <div class="panel-header">
+                        <span>AI-Generated Text</span>
+                        <span id="wordCount" class="char-count:">0 / 3000 words</span>
+                        
                     </div>
-                    <textarea id="inputText" placeholder="Paste your AI-generated text from ChatGPT, Claude, Gemini, or any AI model here..."></textarea>
+                    <textarea id="inputText" ></textarea>
                     <div class="panel-actions">
-                        <button class="btn-secondary" id="clearBtn">🗑️ Clear</button>
-                        <button class="btn-secondary" id="exampleBtn">📋 Load Example</button>
+                        <button class="btn-secondary" id="clearBtn">Clear</button>
+                        <!-- <button class="btn-secondary" id="exampleBtn">📋 Load Example</button> -->
                     </div>
                 </div>
 
+                <!-- OUTPUT PANEL -->
                 <div class="output-panel">
                     <div class="panel-header">
-                        <span>✨ Humanized Output</span>
-                        <button class="copy-btn" id="copyBtn">📋 Copy</button>
+                        <span> Humanized Output</span>
+                        <button class="copy-btn" id="copyBtn">Copy</button>
                     </div>
                     <div id="outputText" class="output-content">
                         <div class="placeholder">
-                            <span>✨</span>
-                            <p>Your humanized text will appear here</p>
-                            <small>No API calls - 100% local processing</small>
+                            <span></span>
+                            <!-- <p>Your humanized text will appear here</p> -->
+                            <!-- <small>No API calls - 100% local processing</small> -->
                         </div>
                     </div>
                 </div>
@@ -80,8 +83,8 @@
 
             <div class="action-bar">
                 <button class="btn-primary" id="humanizeBtn">
-                    <span>🎯</span> Humanize Now
-                    <span>⚡</span>
+                    <span></span> Humanize Now
+                    <span></span>
                 </button>
             </div>
 
@@ -113,9 +116,9 @@
                 <div class="stat-label">Processing Time</div>
             </div>
             <div class="stat-card">
-    <div class="stat-value" id="perplexityScore">0%</div>
-    <div class="stat-label">Perplexity Score</div>
-</div>
+                <div class="stat-value" id="perplexityScore">0%</div>
+                <div class="stat-label">Perplexity Score</div>
+            </div>
         </div>
 
         <section id="features" class="features">
@@ -170,32 +173,66 @@
             </div>
         </section>
 
-        <section id="faq" class="faq">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-grid">
-                <div class="faq-item">
-                    <div class="faq-question">Will this bypass GPTZero?</div>
-                    <div class="faq-answer">Our smart algorithms use burstiness, sentence variation, and natural fillers to make text more human-like. While no tool can guarantee 100% bypass, users report significantly lower AI detection scores.</div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-question">Is my data private?</div>
-                    <div class="faq-answer">Absolutely! All processing happens locally in your browser. No API calls, no data storage, complete privacy.</div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-question">Do I need an API key?</div>
-                    <div class="faq-answer">No! This tool works completely offline without any API keys or external services.</div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-question">What's the character limit?</div>
-                    <div class="faq-answer">You can humanize up to 10,000 characters per request. For longer texts, process in chunks.</div>
-                </div>
-            </div>
-        </section>
+     <section id="faq" class="faq">
+    <h2>Frequently Asked Questions</h2>
+    
+    <style>
+        .faq-answer {
+            display: none;
+            padding: 0.75rem 1rem 1rem;
+            color: #64748b;
+            line-height: 1.6;
+        }
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+        .faq-question {
+            cursor: pointer;
+            padding: 1rem;
+            font-weight: 600;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-question::after {
+            content: '+';
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+        .faq-item.open .faq-question::after {
+            content: '−';
+        }
+        .faq-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+
+    <div class="faq-grid" style="display: flex; flex-direction: column; gap: 1rem; max-width: 800px; margin: 0 auto;">
+    
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">Will this bypass GPTZero?</div>
+            <div class="faq-answer">Our smart algorithms use burstiness, sentence variation, and natural fillers to make text more human-like. While no tool can guarantee 100% bypass, users report significantly lower AI detection scores.</div>
+        </div>
+    
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">Is my data private?</div>
+            <div class="faq-answer">Absolutely! All processing happens on the server. Your text is not stored after processing.</div>
+        </div>
+    
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">What's the word limit?</div>
+            <div class="faq-answer">You can humanize up to 3,000 words per request. For longer texts, process in chunks.</div>
+        </div>
+
+    </div>
+</section>
     </main>
 
     <footer>
-        <p>© 2024 Smart Humanizer - Humanize AI Text Naturally</p>
-        <p class="footer-note">No API required. 100% private. Works offline.</p>
+        <p>© 2026 Smart Humanizer - Humanize AI Text Naturally</p>
     </footer>
 
     <script src="script.js"></script>
