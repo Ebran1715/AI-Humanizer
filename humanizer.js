@@ -169,7 +169,7 @@ function highlightHeadings(text) {
             if (trimmed.split(' ').length <= 3) fontSize = '24px';
             if (line === lines[0] && trimmed.length > 10) fontSize = '28px';
             
-            highlightedLine = `<div style="font-weight: bold; color: #1a1a2e; font-size: ${fontSize}; margin: 1rem 0 0.5rem 0;">${escapeHtml(trimmed)}</div>`;
+            highlightedLine = `<div style="font-weight: bold; color: #B5048E; font-size: ${fontSize}; margin: 1rem 0 0.5rem 0;">${escapeHtml(trimmed)}</div>`;
         }
         
         highlightedLines.push(highlightedLine);

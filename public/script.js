@@ -236,15 +236,16 @@ function copyOutput() {
 }
 
 // Show success feedback on button
+// Show success feedback on button
 function showCopySuccess() {
-    const originalText = copyBtn.textContent;
-    copyBtn.textContent = '✅ Copied!';
-    copyBtn.style.background = '#4fa80f';
+    const originalText = copyBtn.innerHTML;
+    copyBtn.innerHTML = '✅ Copied!';
+    copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
     copyBtn.style.color = 'white';
     copyBtn.style.border = 'none';
     
     setTimeout(() => {
-        copyBtn.textContent = originalText;
+        copyBtn.innerHTML = originalText;
         copyBtn.style.background = '';
         copyBtn.style.color = '';
         copyBtn.style.border = '';
