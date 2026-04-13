@@ -1,84 +1,193 @@
-// humanizer.js - Complete 30-Module Implementation
+// humanizer.js - Complete 30-Module Implementation with Heading Highlighting
 const express = require('express');
 const router = express.Router();
 
-
-// ========== MODULE 0: HEADING & PARAGRAPH PRESERVER ==========
+// ========== MODULE 0: HEADING & PARAGRAPH PRESERVER (FIXED - DETECTS ALL SUBHEADINGS) ==========
 function preserveStructure(text) {
-    // Split into lines first
     const lines = text.split('\n');
     const preservedLines = [];
     let currentParagraph = [];
     
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
+        let line = lines[i];
+        let trimmed = line.trim();
         
-        // Check if line is a heading
-        const isHeading = (
-            trimmed.match(/^#{1,6}\s/) || // Markdown heading
-            (trimmed.length < 60 && trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.endsWith('.')) || // ALL CAPS heading
-            trimmed.match(/^[A-Z][a-z]{0,40}:?$/) || // Title case heading
-            trimmed.match(/^\d+\.\s+[A-Z]/) || // Numbered heading
-            (trimmed.startsWith('**') && trimmed.endsWith('**')) // Bold heading
-        );
+        // Skip empty lines at start
+        if (trimmed === '' && preservedLines.length === 0) {
+            continue;
+        }
         
-        // Check if line is empty (paragraph separator)
+        // DYNAMIC HEADING DETECTION - Works for ANY content
+        let isHeading = false;
+        
+        // 1. Markdown headings (# Heading)
+        if (trimmed.match(/^#{1,6}\s/)) {
+            isHeading = true;
+        }
+        // 2. Numbered headings (1. Title, 2. Title)
+        else if (trimmed.match(/^\d+\.\s+[A-Z]/)) {
+            isHeading = true;
+        }
+        // 3. ALL CAPS headings (LIKE THIS)
+        else if (trimmed.match(/^[A-Z][A-Z\s]{2,}$/) && trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.endsWith('?')) {
+            isHeading = true;
+        }
+        // 4. Title Case Headings (Each Word Starts With Capital, no ending punctuation)
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && trimmed.length < 100 && !trimmed.endsWith('.') && !trimmed.endsWith('?') && !trimmed.endsWith(',') && !trimmed.endsWith('!')) {
+            isHeading = true;
+        }
+        // 5. Headings ending with colon (What is Programming?:)
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Za-z]+)*:$/) && trimmed.length < 100) {
+            isHeading = true;
+        }
+        // 6. Headings ending with question mark (What is Programming?)
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Za-z]+)*\?$/) && trimmed.length < 100) {
+            isHeading = true;
+        }
+        // 7. Short phrases that are likely headings (3-8 words, starts with capital)
+        else if (trimmed.split(' ').length >= 2 && trimmed.split(' ').length <= 10 && trimmed.length < 80 && trimmed.match(/^[A-Z]/) && !trimmed.endsWith('.') && !trimmed.includes('  ')) {
+            isHeading = true;
+        }
+        
         const isEmptyLine = trimmed === '';
         
         if (isHeading) {
-            // Save previous paragraph if exists
-            if (currentParagraph.length > 0) {
-                preservedLines.push(currentParagraph.join(' '));
-                currentParagraph = [];
-            }
-            // Add heading with marker
-            preservedLines.push(`__HEADING__${trimmed}`);
-        } else if (isEmptyLine) {
             // Save previous paragraph
             if (currentParagraph.length > 0) {
-                preservedLines.push(currentParagraph.join(' '));
+                preservedLines.push({
+                    type: 'paragraph',
+                    content: currentParagraph.join(' ')
+                });
                 currentParagraph = [];
             }
-            // Add empty line marker
-            preservedLines.push('__PARAGRAPH_BREAK__');
+            // Add heading - keep it EXACTLY as is (NO humanization)
+            preservedLines.push({
+                type: 'heading',
+                content: line,
+                original: line
+            });
+        } else if (isEmptyLine) {
+            if (currentParagraph.length > 0) {
+                preservedLines.push({
+                    type: 'paragraph',
+                    content: currentParagraph.join(' ')
+                });
+                currentParagraph = [];
+            }
+            preservedLines.push({
+                type: 'break',
+                content: ''
+            });
         } else {
-            // Add to current paragraph
-            currentParagraph.push(trimmed);
+            currentParagraph.push(line);
         }
     }
     
-    // Save last paragraph
     if (currentParagraph.length > 0) {
-        preservedLines.push(currentParagraph.join(' '));
+        preservedLines.push({
+            type: 'paragraph',
+            content: currentParagraph.join(' ')
+        });
     }
     
     return preservedLines;
 }
 
-function restoreStructure(preservedLines, humanizedParagraphs) {
+function restoreStructure(preservedStructure, humanizedParagraphs) {
     const result = [];
     let paragraphIndex = 0;
     
-    for (const line of preservedLines) {
-        if (line.startsWith('__HEADING__')) {
-            // Restore heading as-is (don't humanize headings)
-            const heading = line.replace('__HEADING__', '');
-            result.push(heading);
-            result.push(''); // Add line break after heading
-        } else if (line === '__PARAGRAPH_BREAK__') {
-            result.push(''); // Add empty line
-        } else {
-            // Normal paragraph - apply humanization
+    for (const item of preservedStructure) {
+        if (item.type === 'heading') {
+            // Restore heading EXACTLY as original - NO changes
+            result.push(item.content);
+        } else if (item.type === 'break') {
+            result.push(''); // Empty line
+        } else if (item.type === 'paragraph') {
+            // Add humanized paragraph if available
             if (paragraphIndex < humanizedParagraphs.length) {
                 result.push(humanizedParagraphs[paragraphIndex]);
                 paragraphIndex++;
+            } else {
+                // Fallback to original if no humanized version
+                result.push(item.content);
             }
         }
     }
     
     return result.join('\n');
 }
+// ========== MODULE 0.5: HEADING HIGHLIGHTER (UPDATED - NO UNDERLINE, DARK BOLD) ==========
+function highlightHeadings(text) {
+    const lines = text.split('\n');
+    const highlightedLines = [];
+    
+    for (let line of lines) {
+        const trimmed = line.trim();
+        let highlightedLine = line;
+        
+        if (trimmed === '') {
+            highlightedLines.push('');
+            continue;
+        }
+        
+        // DYNAMIC HEADING DETECTION - Same logic as preserveStructure
+        let isHeading = false;
+        
+        // Markdown headings
+        if (trimmed.match(/^#{1,6}\s/)) {
+            isHeading = true;
+        }
+        // Numbered headings
+        else if (trimmed.match(/^\d+\.\s+[A-Z]/)) {
+            isHeading = true;
+        }
+        // ALL CAPS headings
+        else if (trimmed.match(/^[A-Z][A-Z\s]{2,}$/) && trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.endsWith('?')) {
+            isHeading = true;
+        }
+        // Title Case Headings
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && trimmed.length < 100 && !trimmed.endsWith('.') && !trimmed.endsWith('?') && !trimmed.endsWith(',') && !trimmed.endsWith('!')) {
+            isHeading = true;
+        }
+        // Headings ending with colon
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Za-z]+)*:$/) && trimmed.length < 100) {
+            isHeading = true;
+        }
+        // Headings ending with question mark
+        else if (trimmed.match(/^[A-Z][a-z]+(\s+[A-Za-z]+)*\?$/) && trimmed.length < 100) {
+            isHeading = true;
+        }
+        // Short phrases (3-10 words)
+        else if (trimmed.split(' ').length >= 2 && trimmed.split(' ').length <= 10 && trimmed.length < 80 && trimmed.match(/^[A-Z]/) && !trimmed.endsWith('.') && !trimmed.includes('  ')) {
+            isHeading = true;
+        }
+        
+        if (isHeading) {
+            // Apply bold black styling (NO underline)
+            let fontSize = '22px';
+            if (trimmed.split(' ').length <= 3) fontSize = '24px';
+            if (line === lines[0] && trimmed.length > 10) fontSize = '28px';
+            
+            highlightedLine = `<div style="font-weight: bold; color: #1a1a2e; font-size: ${fontSize}; margin: 1rem 0 0.5rem 0;">${escapeHtml(trimmed)}</div>`;
+        }
+        
+        highlightedLines.push(highlightedLine);
+    }
+    
+    return highlightedLines.join('\n');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ========== MODULE 1: HEADING DETECTION ==========
 function detectHeadings(text) {
     const lines = text.split('\n');
@@ -127,7 +236,6 @@ function detectCodeLines(text) {
 
 // ========== MODULE 3: SENTENCE TOKENIZER ==========
 function sentenceTokenizer(text) {
-    // Split on . ! ? but preserve abbreviations
     const sentences = text.match(/[^.!?]+(?:[.!?]+|$)/g) || [text];
     return sentences.map(s => s.trim()).filter(s => s.length > 0);
 }
@@ -151,7 +259,6 @@ function burstinessEngine(sentences) {
 function aggressiveSentenceSplitter(text) {
     let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
     
-    // Split long sentences at commas
     sentences = sentences.flatMap(s => {
         if (s.split(' ').length > 25 && s.includes(',')) {
             const parts = s.split(/(?<=,)\s+(?=[a-z])/);
@@ -478,7 +585,6 @@ function synonymSubstituter(text) {
 function punctuationVariator(text) {
     let result = text;
     
-    // Add extra punctuation randomly
     result = result.replace(/\. /g, (match) => {
         const rand = Math.random();
         if (rand > 0.92) return '... ';
@@ -568,26 +674,67 @@ function transitionNaturalizer(text) {
     return newSentences.join(' ');
 }
 
-// ========== MODULE 27: GRAMMAR CLEANUP (UPDATED) ==========
+// ========== MODULE 27: GRAMMAR CLEANUP (FIXED) ==========
 function grammarCleanup(text) {
     let result = text;
     
-    // Fix ONLY the worst spacing issues (keep human-like imperfections)
-    result = result.replace(/\s+/g, ' ');
+    // First, split into lines
+    let lines = result.split('\n');
+    
+    // Remove empty lines and trim each line
+    let nonEmptyLines = [];
+    for (let line of lines) {
+        let trimmedLine = line.trim();
+        if (trimmedLine !== '') {
+            nonEmptyLines.push(trimmedLine);
+        }
+    }
+    
+    // Join with single newline
+    result = nonEmptyLines.join('\n');
+    
+    // Fix multiple spaces to single space
+    result = result.replace(/[ \t]+/g, ' ');
+    
+    // Fix space before punctuation
     result = result.replace(/\s+([.,!?;:])/g, '$1');
     
-    // Fix "word,. word" → "word, word" (optional - comment out to keep original)
+    // Fix "word,. word" → "word, word"
     result = result.replace(/(\w+),\.(\s+)/g, '$1,$2');
     
-    // Fix "word.. word" → "word. word" (optional - comment out to keep original)
+    // Fix "word.. word" → "word. word"
     result = result.replace(/\.\.(\s+)/g, '.$1');
     
-    // Clean up multiple punctuation (but keep ellipsis ...)
-    result = result.replace(/\.\.\.+/g, '...');
-    result = result.replace(/\!\!+/g, '!!');
-    result = result.replace(/\?\?+/g, '??');
+    // Fix multiple dots (but keep ellipsis ...)
+    result = result.replace(/\.{4,}/g, '...');
     
-    return result.trim();
+    // Fix multiple exclamation marks
+    result = result.replace(/!{3,}/g, '!!');
+    
+    // Fix multiple question marks
+    result = result.replace(/\?{3,}/g, '??');
+    
+    // Fix space after ellipsis
+    result = result.replace(/\.\.\.\s*/g, '... ');
+    
+    // Remove space before comma
+    result = result.replace(/\s+,/g, ',');
+    
+    // Remove space before period
+    result = result.replace(/\s+\./g, '.');
+    
+    // Fix multiple commas
+    result = result.replace(/,+/g, ',');
+    
+    // Ensure single space after punctuation
+    result = result.replace(/([.!?])\s+/g, '$1 ');
+    
+    // Final trim
+    result = result.trim();
+    
+
+    return result;
+    
 }
 
 // ========== MODULE 28: TECH KEYWORD PRESERVER ==========
@@ -598,9 +745,6 @@ function techKeywordPreserver(text, preservedKeywords = []) {
         'AWS', 'Docker', 'Kubernetes', 'GraphQL', 'REST', 'Git', 'GitHub'
     ];
     const allPreserved = [...defaultPreserved, ...preservedKeywords];
-    
-    // Keywords are already preserved since we don't modify them
-    // This function ensures they remain intact
     return text;
 }
 
@@ -608,49 +752,39 @@ function techKeywordPreserver(text, preservedKeywords = []) {
 function humanScoreCalculator(originalText, humanizedText) {
     let score = 100;
     
-    // Factor 1: Contraction usage
     const contractionCount = (humanizedText.match(/\b\w+'\w+\b/g) || []).length;
     const originalContractions = (originalText.match(/\b\w+'\w+\b/g) || []).length;
     if (contractionCount > originalContractions) score += Math.min(12, (contractionCount - originalContractions) * 2);
     
-    // Factor 2: Disfluency presence
     const disfluencyCount = (humanizedText.match(/\b(um|uh|like|you know|i mean|well|actually|basically|honestly|so yeah)\b/gi) || []).length;
     if (disfluencyCount > 0) score += Math.min(18, disfluencyCount * 3);
     
-    // Factor 3: Hedging language
     const hedgingCount = (humanizedText.match(/\b(i think|i believe|maybe|perhaps|sort of|kind of|i guess|probably|it seems)\b/gi) || []).length;
     if (hedgingCount > 0) score += Math.min(15, hedgingCount * 2);
     
-    // Factor 4: Rhetorical questions
     const questionCount = (humanizedText.match(/\b(right\?|you know\?|see what i mean\?|get it\?|makes sense\?|isn't it\?|don't you think\?)\b/gi) || []).length;
     score += questionCount * 6;
     
-    // Factor 5: Informal vocabulary
     const informalWords = ['gonna', 'wanna', 'kinda', 'sorta', 'dunno', 'gotta', 'yeah', 'nah'];
     const informalCount = informalWords.filter(w => humanizedText.toLowerCase().includes(w)).length;
     if (informalCount > 0) score += Math.min(10, informalCount * 3);
     
-    // Factor 6: Punctuation variation
     if (humanizedText.includes('...')) score += 4;
     if (humanizedText.includes('—')) score += 4;
     if (humanizedText.includes('!!')) score += 3;
     if (humanizedText.includes('??')) score += 3;
     if (humanizedText.includes('?!')) score += 4;
     
-    // Factor 7: Parenthetical asides
     if (humanizedText.includes('(') || humanizedText.includes('—')) score += 6;
     
-    // Factor 8: Opinion phrases
     const opinionCount = (humanizedText.match(/\b(i think|in my opinion|personally|to be honest|if you ask me|the way i see it)\b/gi) || []).length;
     score += opinionCount * 4;
     
-    // Factor 9: Sentence length variation (burstiness)
     const sentences = sentenceTokenizer(humanizedText);
     const burstiness = burstinessEngine(sentences);
     if (burstiness === 'high') score += 10;
     else if (burstiness === 'medium') score += 5;
     
-    // Factor 10: AI phrase removal benefit
     const originalAiPhrases = (originalText.match(/\b(furthermore|moreover|notably|in conclusion|delve|leverage|synergy)\b/gi) || []).length;
     const humanizedAiPhrases = (humanizedText.match(/\b(furthermore|moreover|notably|in conclusion|delve|leverage|synergy)\b/gi) || []).length;
     if (humanizedAiPhrases < originalAiPhrases) score += 5;
@@ -658,210 +792,144 @@ function humanScoreCalculator(originalText, humanizedText) {
     return Math.min(99, Math.max(0, Math.round(score)));
 }
 
-// ========== MODULE 30: MAIN HUMANIZATION PIPELINE (UPDATED) ==========
+// ========== MODULE 30: MAIN HUMANIZATION PIPELINE ==========
 async function humanizeText(text, options = {}) {
     const intensity = options.intensity || 0.9;
     const preservedKeywords = options.preservedKeywords || [];
     
     console.log('\n🔧 APPLYING ALL 30 MODULES...\n');
     
-    // ===== PRESERVE HEADINGS AND PARAGRAPHS FIRST =====
     const preservedStructure = preserveStructure(text);
     
-    // Extract only the paragraph text to humanize (excluding headings)
-    const paragraphsToHumanize = preservedStructure.filter(line => 
-        !line.startsWith('__HEADING__') && line !== '__PARAGRAPH_BREAK__'
-    );
+    const paragraphsToHumanize = preservedStructure
+        .filter(item => item.type === 'paragraph')
+        .map(item => item.content);
     
-    let result = paragraphsToHumanize.join(' ');
+    let result;
+    let humanizedParagraphs = [];
     
-    let metrics = {};
-    
-    // Module 1-2: Detection (for metrics)
-    const headings = detectHeadings(text);
-    const codeDetection = detectCodeLines(text);
-    metrics.headings = headings;
-    metrics.hasCode = codeDetection.hasCode;
-    
-    // Module 3: Sentence Tokenizer (used throughout)
-    let sentences = sentenceTokenizer(result);
-    
-    // Module 4: Burstiness Engine (analyze original)
-    const originalBurstiness = burstinessEngine(sentences);
-    console.log(`📊 Original Burstiness: ${originalBurstiness}`);
-    
-    // Module 5: Aggressive Sentence Splitter
-    if (intensity > 0.6) {
-        sentences = aggressiveSentenceSplitter(result);
-        result = sentences.join(' ');
-        console.log('✓ Aggressive Sentence Splitter applied');
+    if (paragraphsToHumanize.length === 0) {
+        result = text;
+        
+        let sentences = sentenceTokenizer(result);
+        
+        if (intensity > 0.6) {
+            sentences = aggressiveSentenceSplitter(result);
+            result = sentences.join(' ');
+        }
+        if (intensity > 0.5) {
+            sentences = shortPunchInjector(sentenceTokenizer(result));
+            result = sentences.join(' ');
+        }
+        if (intensity > 0.4) result = perplexityInjector(result);
+        if (intensity > 0.5) result = hedgingInjector(result);
+        if (intensity > 0.6) result = disfluencyInjector(result);
+        if (intensity > 0.6) result = asideInjector(result);
+        if (intensity > 0.5) result = afterthoughtAppender(result);
+        if (intensity > 0.7) result = selfCorrectionPrepender(result);
+        if (intensity > 0.5) result = rhetoricalQuestionGenerator(result);
+        if (intensity > 0.6) result = syntaxVariator(result);
+        if (intensity > 0.5) result = adverbialFrontLoader(result);
+        if (intensity > 0.8) result = cleftBuilder(result);
+        if (intensity > 0.8) result = inversionEngine(result);
+        result = contractionEngine(result);
+        result = aiPhraseRemover(result);
+        result = formalToInformal(result);
+        if (intensity > 0.5) result = synonymSubstituter(result);
+        if (intensity > 0.6) result = punctuationVariator(result);
+        if (intensity > 0.6) result = emDashInjector(result);
+        if (intensity > 0.5) result = ellipsisInjector(result);
+        if (intensity > 0.5) result = opinionInjector(result);
+        if (intensity > 0.5) result = transitionNaturalizer(result);
+        result = grammarCleanup(result);
+        result = techKeywordPreserver(result, preservedKeywords);
+        
+        const humanScore = humanScoreCalculator(text, result);
+        
+        const highlightedResult = highlightHeadings(result);
+        
+        return {
+            humanized: highlightedResult,
+            text: result,
+            humanScore: humanScore,
+            metrics: {
+                originalWords: text.split(/\s+/).length,
+                humanizedWords: result.split(/\s+/).length,
+                humanScore: humanScore,
+                burstiness: 'medium',
+                hasHeadings: false,
+                hasCode: false
+            }
+        };
     }
     
-    // Module 6: Short Punch Injector
-    if (intensity > 0.5) {
-        sentences = shortPunchInjector(sentenceTokenizer(result));
-        result = sentences.join(' ');
-        console.log('✓ Short Punch Injector applied');
+    for (let i = 0; i < paragraphsToHumanize.length; i++) {
+        let para = paragraphsToHumanize[i];
+        console.log(`📝 Humanizing paragraph ${i + 1}/${paragraphsToHumanize.length}...`);
+        
+        let sentences = sentenceTokenizer(para);
+        
+        if (intensity > 0.6) {
+            sentences = aggressiveSentenceSplitter(para);
+            para = sentences.join(' ');
+        }
+        if (intensity > 0.5) {
+            sentences = shortPunchInjector(sentenceTokenizer(para));
+            para = sentences.join(' ');
+        }
+        if (intensity > 0.4) para = perplexityInjector(para);
+        if (intensity > 0.5) para = hedgingInjector(para);
+        if (intensity > 0.6) para = disfluencyInjector(para);
+        if (intensity > 0.6) para = asideInjector(para);
+        if (intensity > 0.5) para = afterthoughtAppender(para);
+        if (intensity > 0.7) para = selfCorrectionPrepender(para);
+        if (intensity > 0.5) para = rhetoricalQuestionGenerator(para);
+        if (intensity > 0.6) para = syntaxVariator(para);
+        if (intensity > 0.5) para = adverbialFrontLoader(para);
+        if (intensity > 0.8) para = cleftBuilder(para);
+        if (intensity > 0.8) para = inversionEngine(para);
+        para = contractionEngine(para);
+        para = aiPhraseRemover(para);
+        para = formalToInformal(para);
+        if (intensity > 0.5) para = synonymSubstituter(para);
+        if (intensity > 0.6) para = punctuationVariator(para);
+        if (intensity > 0.6) para = emDashInjector(para);
+        if (intensity > 0.5) para = ellipsisInjector(para);
+        if (intensity > 0.5) para = opinionInjector(para);
+        if (intensity > 0.5) para = transitionNaturalizer(para);
+        para = grammarCleanup(para);
+        para = techKeywordPreserver(para, preservedKeywords);
+        
+        humanizedParagraphs.push(para);
     }
     
-    // Module 7: Perplexity Injector
-    if (intensity > 0.4) {
-        result = perplexityInjector(result);
-        console.log('✓ Perplexity Injector applied');
-    }
+    result = restoreStructure(preservedStructure, humanizedParagraphs);
     
-    // Module 8: Hedging Language Injector
-    if (intensity > 0.5) {
-        result = hedgingInjector(result);
-        console.log('✓ Hedging Language Injector applied');
-    }
-    
-    // Module 9: Natural Disfluency Injector
-    if (intensity > 0.6) {
-        result = disfluencyInjector(result);
-        console.log('✓ Natural Disfluency Injector applied');
-    }
-    
-    // Module 10: Parenthetical Aside Injector
-    if (intensity > 0.6) {
-        result = asideInjector(result);
-        console.log('✓ Parenthetical Aside Injector applied');
-    }
-    
-    // Module 11: Afterthought Clause Appender
-    if (intensity > 0.5) {
-        result = afterthoughtAppender(result);
-        console.log('✓ Afterthought Clause Appender applied');
-    }
-    
-    // Module 12: Self-Correction Prepender
-    if (intensity > 0.7) {
-        result = selfCorrectionPrepender(result);
-        console.log('✓ Self-Correction Prepender applied');
-    }
-    
-    // Module 13: Rhetorical Question Generator
-    if (intensity > 0.5) {
-        result = rhetoricalQuestionGenerator(result);
-        console.log('✓ Rhetorical Question Generator applied');
-    }
-    
-    // Module 14: Syntax Structure Variator
-    if (intensity > 0.6) {
-        result = syntaxVariator(result);
-        console.log('✓ Syntax Structure Variator applied');
-    }
-    
-    // Module 15: Adverbial Front-Loader
-    if (intensity > 0.5) {
-        result = adverbialFrontLoader(result);
-        console.log('✓ Adverbial Front-Loader applied');
-    }
-    
-    // Module 16: Cleft Construction Builder
-    if (intensity > 0.8) {
-        result = cleftBuilder(result);
-        console.log('✓ Cleft Construction Builder applied');
-    }
-    
-    // Module 17: Sentence Inversion Engine
-    if (intensity > 0.8) {
-        result = inversionEngine(result);
-        console.log('✓ Sentence Inversion Engine applied');
-    }
-    
-    // Module 18: Contraction Engine
-    result = contractionEngine(result);
-    console.log('✓ Contraction Engine applied');
-    
-    // Module 19: AI Phrase Remover
-    result = aiPhraseRemover(result);
-    console.log('✓ AI Phrase Remover applied');
-    
-    // Module 20: Formal to Informal Vocabulary Replacer
-    result = formalToInformal(result);
-    console.log('✓ Formal to Informal Vocabulary Replacer applied');
-    
-    // Module 21: Synonym Pool Substituter
-    if (intensity > 0.5) {
-        result = synonymSubstituter(result);
-        console.log('✓ Synonym Pool Substituter applied');
-    }
-    
-    // Module 22: Punctuation Variator
-    if (intensity > 0.6) {
-        result = punctuationVariator(result);
-        console.log('✓ Punctuation Variator applied');
-    }
-    
-    // Module 23: Em Dash Injector
-    if (intensity > 0.6) {
-        result = emDashInjector(result);
-        console.log('✓ Em Dash Injector applied');
-    }
-    
-    // Module 24: Ellipsis Injector
-    if (intensity > 0.5) {
-        result = ellipsisInjector(result);
-        console.log('✓ Ellipsis Injector applied');
-    }
-    
-    // Module 25: Opinion Injector
-    if (intensity > 0.5) {
-        result = opinionInjector(result);
-        console.log('✓ Opinion Injector applied');
-    }
-    
-    // Module 26: Transition Naturalizer
-    if (intensity > 0.5) {
-        result = transitionNaturalizer(result);
-        console.log('✓ Transition Naturalizer applied');
-    }
-    
-    // Module 27: Grammar Cleanup
-    result = grammarCleanup(result);
-    console.log('✓ Grammar Cleanup applied');
-    
-    // Module 28: Tech Keyword Preserver
-    result = techKeywordPreserver(result, preservedKeywords);
-    console.log('✓ Tech Keyword Preserver applied');
-    
-    // ===== RESTORE HEADINGS AND PARAGRAPHS =====
-    // Split humanized text into sentences and group back into paragraphs
-    const humanizedSentences = sentenceTokenizer(result);
-    const originalParagraphCount = paragraphsToHumanize.length;
-    const sentencesPerParagraph = Math.ceil(humanizedSentences.length / originalParagraphCount);
-    
-    const restoredParagraphs = [];
-    for (let i = 0; i < originalParagraphCount; i++) {
-        const start = i * sentencesPerParagraph;
-        const end = Math.min(start + sentencesPerParagraph, humanizedSentences.length);
-        const paragraph = humanizedSentences.slice(start, end).join(' ');
-        restoredParagraphs.push(paragraph);
-    }
-    
-    // Restore the full structure with headings
-    result = restoreStructure(preservedStructure, restoredParagraphs);
-    
-    // Module 29: Human Score Calculator (on the humanized text only, not headings)
-    const humanScore = humanScoreCalculator(text, restoredParagraphs.join(' '));
+    const allHumanizedText = humanizedParagraphs.join(' ');
+    const humanScore = humanScoreCalculator(text, allHumanizedText);
     console.log(`📈 Human Score: ${humanScore}%`);
     console.log(`🤖 AI Likelihood: ${100 - humanScore}%`);
     
-    // Final burstiness calculation
-    const finalBurstiness = burstinessEngine(sentenceTokenizer(restoredParagraphs.join(' ')));
-    metrics.burstiness = finalBurstiness;
-    metrics.originalWords = text.split(/\s+/).length;
-    metrics.humanizedWords = result.split(/\s+/).length;
-    metrics.humanScore = humanScore;
+    const finalBurstiness = burstinessEngine(sentenceTokenizer(allHumanizedText));
+    
+    const highlightedResult = highlightHeadings(result);
     
     console.log(`\n✅ ALL 30 MODULES COMPLETE!\n`);
     
     return {
-        humanized: result,
+        humanized: highlightedResult,
         text: result,
         humanScore: humanScore,
-        metrics: metrics
+        metrics: {
+            originalWords: text.split(/\s+/).length,
+            humanizedWords: result.split(/\s+/).length,
+            humanScore: humanScore,
+            burstiness: finalBurstiness,
+            hasHeadings: preservedStructure.some(item => item.type === 'heading'),
+            hasCode: false,
+            paragraphsHumanized: humanizedParagraphs.length,
+            headingsPreserved: preservedStructure.filter(item => item.type === 'heading').length
+        }
     };
 }
 
@@ -906,7 +974,7 @@ router.post('/humanize', async (req, res) => {
                 humanizedWords: result.metrics.humanizedWords,
                 burstiness: result.metrics.burstiness,
                 hasCode: result.metrics.hasCode,
-                headingsFound: result.metrics.headings?.length || 0,
+                headingsFound: result.metrics.headingsPreserved || 0,
                 humanScore: result.humanScore
             },
             modulesApplied: [
@@ -919,7 +987,7 @@ router.post('/humanize', async (req, res) => {
                 'AI Phrase Remover ✓', 'Formal to Informal Replacer ✓', 'Synonym Pool Substituter ✓',
                 'Punctuation Variator ✓', 'Em Dash Injector ✓', 'Ellipsis Injector ✓',
                 'Opinion Injector ✓', 'Transition Naturalizer ✓', 'Grammar Cleanup ✓',
-                'Tech Keyword Preserver ✓', 'Human Score Calculator ✓'
+                'Tech Keyword Preserver ✓', 'Human Score Calculator ✓', 'Heading Highlighter ✓'
             ]
         });
         
@@ -933,16 +1001,14 @@ router.post('/humanize', async (req, res) => {
     }
 });
 
-// Health check endpoint
 router.get('/health', (req, res) => {
     res.json({
         status: 'ready',
-        modules: 30,
-        version: '3.0.0',
+        modules: 31,
+        version: '4.0.0',
         allModulesActive: true
     });
 });
 
-// Export both the router AND the function
 module.exports = router;
 module.exports.humanizeText = humanizeText;

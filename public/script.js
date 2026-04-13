@@ -110,21 +110,36 @@ async function humanizeText() {
         
         const data = await response.json();
         
-        if (data.success) {
-            // Preserve paragraph structure
-            let outputHtml = data.output;
-            // Convert double newlines to paragraph tags
-            outputHtml = outputHtml.split('\n\n').map(para => {
-                if (para.trim()) {
-                    return `<p>${para.trim()}</p>`;
-                }
-                return '';
-            }).join('');
+       if (data.success) {
+    // Store the raw humanized text for copying
+    const rawText = data.output;
+    
+    // Store raw text as data attribute for copy function
+    outputDiv.setAttribute('data-raw-text', rawText);
+    
+    // Preserve paragraph structure for display
+    let outputHtml = data.output;
+    // Convert double newlines to paragraph tags
+    outputHtml = outputHtml.split('\n\n').map(para => {
+        if (para.trim()) {
+            // Check if this line is a heading (starts with capital, no ending punctuation)
+            const isHeading = para.trim().match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && 
+                             para.trim().length < 80 && 
+                             !para.trim().endsWith('.') && 
+                             !para.trim().endsWith('?');
             
-            outputDiv.innerHTML = outputHtml;
-            updateStats(data.metrics);
-            progressText.textContent = '✅ Complete! Text has been humanized with high perplexity.';
-        } else {
+            if (isHeading) {
+                return `<h3 style="font-weight: bold; color: #1a1a2e; font-size: 22px; margin: 1rem 0 0.5rem 0;">${para.trim()}</h3>`;
+            }
+            return `<p>${para.trim()}</p>`;
+        }
+        return '';
+    }).join('');
+    
+    outputDiv.innerHTML = outputHtml;
+    updateStats(data.metrics);
+    progressText.textContent = '✅ Complete! Text has been humanized with high perplexity.';
+}else {
             throw new Error(data.error);
         }
         
@@ -166,26 +181,34 @@ function clearFields() {
     updateWordCount();
 }
 
-// ========== FIXED COPY BUTTON FUNCTION ==========
+// ========== FIXED COPY BUTTON FUNCTION - Preserves headings in plain text ==========
 function copyOutput() {
-    console.log('Copy button clicked!'); // Debug log
+    console.log('Copy button clicked!');
     
     // Get all text from output div
     let outputText = '';
     
-    // Check if there are paragraphs in the output
-    const paragraphs = outputDiv.querySelectorAll('p');
+    // Check if there are paragraphs or divs in the output
+    const contentElements = outputDiv.querySelectorAll('p, div');
     
-    if (paragraphs.length > 0 && !outputDiv.querySelector('.placeholder')) {
-        // Extract text from all paragraphs
-        paragraphs.forEach(p => {
-            outputText += p.innerText + '\n\n';
+    if (contentElements.length > 0 && !outputDiv.querySelector('.placeholder')) {
+        // Extract text from all elements (this preserves heading text as plain text)
+        contentElements.forEach(el => {
+            let text = el.innerText || el.textContent;
+            if (text && text.trim() !== '') {
+                outputText += text + '\n\n';
+            }
         });
         outputText = outputText.trim();
     } else {
         // Get direct text content
         outputText = outputDiv.innerText || outputDiv.textContent;
     }
+    
+    // Clean up any HTML entities or extra spaces
+    outputText = outputText.replace(/&nbsp;/g, ' ')
+                          .replace(/\n{3,}/g, '\n\n')
+                          .trim();
     
     // Check if there's actual content (not placeholder)
     const isPlaceholder = outputText.includes('Your humanized text will appear here') || 

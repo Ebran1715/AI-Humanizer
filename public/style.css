@@ -569,3 +569,111 @@ footer {
 
 
 
+
+/* Heading Highlighting Styles */
+.heading-markdown, .heading-allcaps, .heading-titlecase, .heading-numbered, .heading-bold {
+    font-weight: bold;
+    margin: 1.2rem 0 0.6rem 0;
+    line-height: 1.3;
+}
+
+.heading-markdown {
+    color: #fbbf24;
+    border-left: 4px solid #f59e0b;
+    padding-left: 1rem;
+}
+
+.heading-allcaps {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
+}
+
+.heading-titlecase {
+    color: #fbbf24;
+    border-bottom: 1px solid #f59e0b;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+}
+
+.heading-numbered {
+    color: #fcd34d;
+}
+
+.heading-numbered span {
+    color: #f59e0b;
+}
+
+.heading-bold {
+    color: #fbbf24;
+}
+
+/* Output container for formatted text */
+.formatted-output {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+}
+
+.formatted-output p {
+    margin-bottom: 1rem;
+}
+
+
+
+
+
+/* Main Title Styling */
+.main-title {
+    font-weight: bold;
+    text-align: center;
+    margin: 1rem 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+/* Other heading styles remain the same */
+.heading-markdown {
+    font-weight: bold;
+    color: #fbbf24;
+    border-left: 4px solid #f59e0b;
+    padding-left: 1rem;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+.heading-allcaps {
+    font-weight: bold;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
+    margin: 1.2rem 0 0.8rem 0;
+}
+
+.heading-titlecase {
+    font-weight: bold;
+    color: #fbbf24;
+    border-bottom: 2px solid #f59e0b;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    margin: 1.2rem 0 0.6rem 0;
+}
+
+.heading-numbered {
+    font-weight: bold;
+    color: #fcd34d;
+    margin: 1rem 0 0.5rem 0;
+}
+
+.heading-numbered span {
+    color: #f59e0b;
+    font-size: 1.3rem;
+}
+
+.heading-bold {
+    font-weight: bold;
+    color: #fbbf24;
+    margin: 1rem 0 0.5rem 0;
+}
