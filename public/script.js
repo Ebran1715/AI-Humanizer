@@ -66,13 +66,18 @@ function showProgress() {
 }
 
 // Update stats
+// function updateStats(metrics) {
+//     statsGrid.style.display = 'grid';
+//     document.getElementById('originalWords').textContent = metrics.originalWords;
+//     document.getElementById('humanizedWords').textContent = metrics.humanizedWords;
+//     document.getElementById('changesCount').textContent = metrics.changes;
+//     document.getElementById('perplexityScore').textContent = metrics.uniquenessScore + '%';
+//     document.getElementById('processingTime').textContent = metrics.processingTimeMs + 'ms';
+// }
+// Update stats (disabled - stats grid removed from HTML)
 function updateStats(metrics) {
-    statsGrid.style.display = 'grid';
-    document.getElementById('originalWords').textContent = metrics.originalWords;
-    document.getElementById('humanizedWords').textContent = metrics.humanizedWords;
-    document.getElementById('changesCount').textContent = metrics.changes;
-    document.getElementById('perplexityScore').textContent = metrics.uniquenessScore + '%';
-    document.getElementById('processingTime').textContent = metrics.processingTimeMs + 'ms';
+    // Function kept empty to prevent errors
+    console.log('Humanization complete:', metrics);
 }
 
 // Humanize text
@@ -110,36 +115,36 @@ async function humanizeText() {
         
         const data = await response.json();
         
-       if (data.success) {
-    // Store the raw humanized text for copying
-    const rawText = data.output;
-    
-    // Store raw text as data attribute for copy function
-    outputDiv.setAttribute('data-raw-text', rawText);
-    
-    // Preserve paragraph structure for display
-    let outputHtml = data.output;
-    // Convert double newlines to paragraph tags
-    outputHtml = outputHtml.split('\n\n').map(para => {
-        if (para.trim()) {
-            // Check if this line is a heading (starts with capital, no ending punctuation)
-            const isHeading = para.trim().match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && 
-                             para.trim().length < 80 && 
-                             !para.trim().endsWith('.') && 
-                             !para.trim().endsWith('?');
+        if (data.success) {
+            // Store the raw humanized text for copying
+            const rawText = data.output;
             
-            if (isHeading) {
-                return `<h3 style="font-weight: bold; color: #1a1a2e; font-size: 22px; margin: 1rem 0 0.5rem 0;">${para.trim()}</h3>`;
-            }
-            return `<p>${para.trim()}</p>`;
-        }
-        return '';
-    }).join('');
-    
-    outputDiv.innerHTML = outputHtml;
-    updateStats(data.metrics);
-    progressText.textContent = '✅ Complete! Text has been humanized with high perplexity.';
-}else {
+            // Store raw text as data attribute for copy function
+            outputDiv.setAttribute('data-raw-text', rawText);
+            
+            // Preserve paragraph structure for display
+            let outputHtml = data.output;
+            // Convert double newlines to paragraph tags
+            outputHtml = outputHtml.split('\n\n').map(para => {
+                if (para.trim()) {
+                    // Check if this line is a heading (starts with capital, no ending punctuation)
+                    const isHeading = para.trim().match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && 
+                                     para.trim().length < 80 && 
+                                     !para.trim().endsWith('.') && 
+                                     !para.trim().endsWith('?');
+                    
+                    if (isHeading) {
+                        return `<h3 style="font-weight: bold; color: #B5048E; font-size: 22px; margin: 1rem 0 0.5rem 0;">${para.trim()}</h3>`;
+                    }
+                    return `<p>${para.trim()}</p>`;
+                }
+                return '';
+            }).join('');
+            
+            outputDiv.innerHTML = outputHtml;
+            // updateStats(data.metrics); // Stats grid removed - no longer needed
+            progressText.textContent = 'Complete! Text has been humanized with high perplexity.';
+        } else {
             throw new Error(data.error);
         }
         
@@ -181,7 +186,7 @@ function clearFields() {
     updateWordCount();
 }
 
-// ========== FIXED COPY BUTTON FUNCTION - Preserves headings in plain text ==========
+// ========== COPY BUTTON FUNCTION ==========
 function copyOutput() {
     console.log('Copy button clicked!');
     
@@ -189,10 +194,9 @@ function copyOutput() {
     let outputText = '';
     
     // Check if there are paragraphs or divs in the output
-    const contentElements = outputDiv.querySelectorAll('p, div');
+    const contentElements = outputDiv.querySelectorAll('p, div, h3');
     
     if (contentElements.length > 0 && !outputDiv.querySelector('.placeholder')) {
-        // Extract text from all elements (this preserves heading text as plain text)
         contentElements.forEach(el => {
             let text = el.innerText || el.textContent;
             if (text && text.trim() !== '') {
@@ -201,16 +205,13 @@ function copyOutput() {
         });
         outputText = outputText.trim();
     } else {
-        // Get direct text content
         outputText = outputDiv.innerText || outputDiv.textContent;
     }
     
-    // Clean up any HTML entities or extra spaces
     outputText = outputText.replace(/&nbsp;/g, ' ')
                           .replace(/\n{3,}/g, '\n\n')
                           .trim();
     
-    // Check if there's actual content (not placeholder)
     const isPlaceholder = outputText.includes('Your humanized text will appear here') || 
                           outputText.includes('Click "Humanize Now"') ||
                           outputText === '' ||
@@ -221,35 +222,27 @@ function copyOutput() {
         return;
     }
     
-    // Method 1: Modern Clipboard API
+    // Copy to clipboard
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(outputText).then(() => {
-            showCopySuccess();
+            // Change button text directly
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
+            copyBtn.style.color = 'white';
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = '';
+                copyBtn.style.color = '';
+            }, 2000);
         }).catch(err => {
             console.error('Clipboard API failed:', err);
             fallbackCopyText(outputText);
         });
     } else {
-        // Method 2: Fallback for older browsers
         fallbackCopyText(outputText);
     }
-}
-
-// Show success feedback on button
-// Show success feedback on button
-function showCopySuccess() {
-    const originalText = copyBtn.innerHTML;
-    copyBtn.innerHTML = '✅ Copied!';
-    copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
-    copyBtn.style.color = 'white';
-    copyBtn.style.border = 'none';
-    
-    setTimeout(() => {
-        copyBtn.innerHTML = originalText;
-        copyBtn.style.background = '';
-        copyBtn.style.color = '';
-        copyBtn.style.border = '';
-    }, 2000);
 }
 
 // Fallback copy method using textarea
@@ -267,7 +260,17 @@ function fallbackCopyText(text) {
     try {
         const successful = document.execCommand('copy');
         if (successful) {
-            showCopySuccess();
+            // Change button text directly
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
+            copyBtn.style.color = 'white';
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = '';
+                copyBtn.style.color = '';
+            }, 2000);
         } else {
             alert('Press Ctrl+C to copy the text.');
         }
@@ -279,9 +282,8 @@ function fallbackCopyText(text) {
     document.body.removeChild(textarea);
 }
 
-// FAQ toggle - Fixed for inline onclick
+// FAQ toggle
 function initFaq() {
-    // No need for this since FAQ uses inline onclick
     console.log('FAQ initialized');
 }
 
@@ -290,14 +292,9 @@ humanizeBtn.addEventListener('click', humanizeText);
 clearBtn.addEventListener('click', clearFields);
 if (exampleBtn) exampleBtn.addEventListener('click', loadExample);
 
-// IMPORTANT: Properly attach copy button event
+// Simple copy button event listener (NO cloning)
 if (copyBtn) {
-    // Remove any existing listeners by cloning and replacing
-    const newCopyBtn = copyBtn.cloneNode(true);
-    copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
-    
-    // Add fresh event listener to the new button
-    newCopyBtn.addEventListener('click', copyOutput);
+    copyBtn.addEventListener('click', copyOutput);
     console.log('Copy button event listener attached successfully');
 } else {
     console.error('Copy button not found!');
