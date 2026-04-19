@@ -66,22 +66,12 @@ function showProgress() {
 }
 
 // Update stats
-// function updateStats(metrics) {
-//     statsGrid.style.display = 'grid';
-//     document.getElementById('originalWords').textContent = metrics.originalWords;
-//     document.getElementById('humanizedWords').textContent = metrics.humanizedWords;
-//     document.getElementById('changesCount').textContent = metrics.changes;
-//     document.getElementById('perplexityScore').textContent = metrics.uniquenessScore + '%';
-//     document.getElementById('processingTime').textContent = metrics.processingTimeMs + 'ms';
-// }
-// Update stats (disabled - stats grid removed from HTML)
 function updateStats(metrics) {
-    // Function kept empty to prevent errors
     console.log('Humanization complete:', metrics);
 }
 
 // Humanize text
-async function humanizeText() {
+async function humanizeTextHandler() {
     const text = inputTextarea.value.trim();
     const wordCount = text === '' ? 0 : text.split(/\s+/).length;
     
@@ -104,8 +94,6 @@ async function humanizeText() {
     humanizeBtn.disabled = true;
     humanizeBtn.style.opacity = '0.6';
     
-    const startTime = performance.now();
-    
     try {
         const response = await fetch('/api/humanize', {
             method: 'POST',
@@ -116,36 +104,27 @@ async function humanizeText() {
         const data = await response.json();
         
         if (data.success) {
-            // Store the raw humanized text for copying
-            const rawText = data.output;
+            // Get the humanized text (try both fields for compatibility)
+            const humanizedHtml = data.humanized || data.output;
             
-            // Store raw text as data attribute for copy function
-            outputDiv.setAttribute('data-raw-text', rawText);
+            if (!humanizedHtml || humanizedHtml === 'undefined') {
+                throw new Error('Received empty response from server');
+            }
             
-            // Preserve paragraph structure for display
-            let outputHtml = data.output;
-            // Convert double newlines to paragraph tags
-            outputHtml = outputHtml.split('\n\n').map(para => {
-                if (para.trim()) {
-                    // Check if this line is a heading (starts with capital, no ending punctuation)
-                    const isHeading = para.trim().match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/) && 
-                                     para.trim().length < 80 && 
-                                     !para.trim().endsWith('.') && 
-                                     !para.trim().endsWith('?');
-                    
-                    if (isHeading) {
-                        return `<h3 style="font-weight: bold; color: #B5048E; font-size: 22px; margin: 1rem 0 0.5rem 0;">${para.trim()}</h3>`;
-                    }
-                    return `<p>${para.trim()}</p>`;
-                }
-                return '';
-            }).join('');
+            // Store the HTML for display
+            outputDiv.innerHTML = humanizedHtml;
             
-            outputDiv.innerHTML = outputHtml;
-            // updateStats(data.metrics); // Stats grid removed - no longer needed
+            // Also store plain text version with proper line breaks for copying
+            const plainText = extractPlainTextWithFormatting(humanizedHtml);
+            outputDiv.setAttribute('data-raw-text', plainText);
+            
             progressText.textContent = 'Complete! Text has been humanized with high perplexity.';
+            
+            if (data.metrics) {
+                updateStats(data.metrics);
+            }
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Humanization failed');
         }
         
     } catch (error) {
@@ -162,26 +141,108 @@ async function humanizeText() {
     }
 }
 
+// Extract plain text while preserving heading and paragraph structure
+// Extract plain text while preserving heading and paragraph structure
+function extractPlainTextWithFormatting(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    let plainText = '';
+    const elements = tempDiv.children;
+    
+    for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        const tagName = el.tagName.toLowerCase();
+        let text = (el.innerText || el.textContent || '').trim();
+        
+        // Remove leading | characters
+        text = text.replace(/^\|\s*/, '');
+        
+        // Skip empty elements or standalone dots
+        if (!text || text === '.' || text === ' .') {
+            continue;
+        }
+        
+        if (text) {
+            const isHeading = tagName === 'h2' || 
+                            tagName === 'h3' || 
+                            (tagName === 'div' && el.style.fontWeight === '900');
+            
+            if (isHeading) {
+                if (plainText && !plainText.endsWith('\n\n')) {
+                    plainText += '\n\n';
+                }
+                plainText += text + '\n\n';
+            } else if (tagName === 'p') {
+                plainText += text + '\n\n';
+            } else {
+                plainText += text;
+            }
+        }
+    }
+    
+    if (!plainText) {
+        plainText = tempDiv.innerText || tempDiv.textContent || '';
+        plainText = plainText.replace(/^\|\s*/gm, '');
+    }
+    
+    // Clean up
+    plainText = plainText
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+    
+    // Remove trailing dot if it's the only thing on the last line
+    const lines = plainText.split('\n');
+    if (lines.length > 0) {
+        // Remove empty lines at the end
+        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+            lines.pop();
+        }
+        // Check if last line is just a dot
+        if (lines.length > 0) {
+            const lastLine = lines[lines.length - 1].trim();
+            if (lastLine === '.' || lastLine === ' .') {
+                lines.pop();
+            }
+        }
+        plainText = lines.join('\n').trim();
+    }
+    
+    return plainText;
+}
+
+// Load example with paragraphs
 // Load example with paragraphs
 function loadExample() {
-    inputTextarea.value = `Artificial intelligence has revolutionized the way we create content in today's digital landscape. 
+    inputTextarea.value = `Friendship: A Precious Bond
 
-Furthermore, AI writing tools have become increasingly sophisticated and accessible to the general public. Consequently, many professionals and students are turning to AI for their content creation needs. 
+What's a Friend?
 
-Moreover, the quality of AI-generated text continues to improve with each new model release. Thus, it is becoming increasingly difficult to distinguish between human and AI writing. 
+A friend is someone who understands you, supports you, and stands by your side through both good times and difficult moments. Friends share laughter, create memories together, and provide comfort when life gets challenging.
 
-However, AI detectors like GPTZero and Turnitin have been developed specifically to identify machine-generated text. As a result, content creators need effective tools to humanize their AI output while preserving the original meaning and quality. 
+Qualities of a Good Friend
 
-This is where our high perplexity humanizer comes in. Using advanced algorithms including burstiness, sentence variation, and natural filler insertion, we can transform robotic AI text into something that reads like it was written by a real person.`;
+A true friend is honest, caring, and trustworthy. They listen without judgment and encourage you to become the best version of yourself. Respect, loyalty, and kindness are essential traits that strengthen this special bond.
+
+Importance of Friendship
+
+Friendship brings joy and emotional support. It reduces stress, boosts confidence, and helps individuals feel less alone. Good friends motivate you to achieve your goals and provide a sense of belonging in an often chaotic world.
+
+Conclusion
+
+Friendship is one of life's greatest treasures. It is built on trust, understanding, and mutual respect, making life more meaningful and enjoyable.`;
     
     updateWordCount();
-    outputDiv.innerHTML = '<div class="placeholder"><span>📋</span><p>Example loaded! Click "Humanize Now" to see the transformation.</p><small>Notice how paragraphs are preserved</small></div>';
+    outputDiv.innerHTML = '<div class="placeholder"><span>📋</span><p>Example loaded! Click "Humanize Now" to see the transformation.</p><small>Notice how headings and paragraphs are preserved</small></div>';
 }
 
 // Clear fields
 function clearFields() {
     inputTextarea.value = '';
-    outputDiv.innerHTML = '<div class="placeholder"><span>✨</span><p>Your humanized text will appear here</p><small>Preserves paragraphs and formatting</small></div>';
+    outputDiv.innerHTML = '<div class="placeholder"><span>✨</span><p>Your humanized text will appear here</p><small>Preserves headings and paragraphs</small></div>';
+    outputDiv.removeAttribute('data-raw-text');
     statsGrid.style.display = 'none';
     updateWordCount();
 }
@@ -190,44 +251,41 @@ function clearFields() {
 function copyOutput() {
     console.log('Copy button clicked!');
     
-    // Get all text from output div
-    let outputText = '';
+    // Get the stored plain text with formatting
+    let outputText = outputDiv.getAttribute('data-raw-text');
     
-    // Check if there are paragraphs or divs in the output
-    const contentElements = outputDiv.querySelectorAll('p, div, h3');
-    
-    if (contentElements.length > 0 && !outputDiv.querySelector('.placeholder')) {
-        contentElements.forEach(el => {
-            let text = el.innerText || el.textContent;
-            if (text && text.trim() !== '') {
-                outputText += text + '\n\n';
-            }
-        });
-        outputText = outputText.trim();
-    } else {
-        outputText = outputDiv.innerText || outputDiv.textContent;
+    // If no stored text, extract from current HTML
+    if (!outputText || outputText.trim() === '') {
+        outputText = extractPlainTextWithFormatting(outputDiv.innerHTML);
     }
     
-    outputText = outputText.replace(/&nbsp;/g, ' ')
-                          .replace(/\n{3,}/g, '\n\n')
-                          .trim();
+    // Clean up the text
+    outputText = outputText
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
     
+    // Check if we have actual content
     const isPlaceholder = outputText.includes('Your humanized text will appear here') || 
                           outputText.includes('Click "Humanize Now"') ||
                           outputText === '' ||
-                          outputText === '✨';
+                          outputText === '✨' ||
+                          outputText.length < 10;
     
     if (!outputText || isPlaceholder) {
         alert('Nothing to copy. Please humanize some text first.');
         return;
     }
     
+    console.log('Copying text, length:', outputText.length);
+    console.log('First 200 chars:', outputText.substring(0, 200));
+    
     // Copy to clipboard
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(outputText).then(() => {
-            // Change button text directly
             const originalText = copyBtn.textContent;
-            copyBtn.textContent = 'Copied!';
+            copyBtn.textContent = '✓ Copied!';
             copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
             copyBtn.style.color = 'white';
             
@@ -250,19 +308,27 @@ function fallbackCopyText(text) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
-    textarea.style.top = '-9999px';
-    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.width = '2em';
+    textarea.style.height = '2em';
+    textarea.style.padding = '0';
+    textarea.style.border = 'none';
+    textarea.style.outline = 'none';
+    textarea.style.boxShadow = 'none';
+    textarea.style.background = 'transparent';
+    textarea.style.opacity = '0';
     document.body.appendChild(textarea);
     
+    textarea.focus();
     textarea.select();
-    textarea.setSelectionRange(0, textarea.value.length);
+    textarea.setSelectionRange(0, 999999);
     
     try {
         const successful = document.execCommand('copy');
         if (successful) {
-            // Change button text directly
             const originalText = copyBtn.textContent;
-            copyBtn.textContent = 'Copied!';
+            copyBtn.textContent = '✓ Copied!';
             copyBtn.style.background = 'linear-gradient(135deg, #97069C, #FB006E)';
             copyBtn.style.color = 'white';
             
@@ -272,14 +338,14 @@ function fallbackCopyText(text) {
                 copyBtn.style.color = '';
             }, 2000);
         } else {
-            alert('Press Ctrl+C to copy the text.');
+            alert('Unable to copy automatically. Please copy manually.');
         }
     } catch (err) {
         console.error('Fallback copy failed:', err);
-        alert('Please select and copy the text manually.');
+        alert('Unable to copy. Please copy manually.');
+    } finally {
+        document.body.removeChild(textarea);
     }
-    
-    document.body.removeChild(textarea);
 }
 
 // FAQ toggle
@@ -288,11 +354,10 @@ function initFaq() {
 }
 
 // ========== EVENT LISTENERS ==========
-humanizeBtn.addEventListener('click', humanizeText);
+humanizeBtn.addEventListener('click', humanizeTextHandler);
 clearBtn.addEventListener('click', clearFields);
 if (exampleBtn) exampleBtn.addEventListener('click', loadExample);
 
-// Simple copy button event listener (NO cloning)
 if (copyBtn) {
     copyBtn.addEventListener('click', copyOutput);
     console.log('Copy button event listener attached successfully');
@@ -304,7 +369,7 @@ if (copyBtn) {
 inputTextarea.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        humanizeText();
+        humanizeTextHandler();
     }
 });
 

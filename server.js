@@ -19,7 +19,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// ===== MAIN HUMANIZE ENDPOINT (using full humanizer module) =====
+// ===== MAIN HUMANIZE ENDPOINT =====
 app.post('/api/humanize', async (req, res) => {
     const startTime = Date.now();
 
@@ -32,15 +32,16 @@ app.post('/api/humanize', async (req, res) => {
             preservedKeywords = []
         } = req.body;
 
-        // Validation
         if (!text || text.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                error: 'Text is required'
-            });
+            return res.status(400).json({ success: false, error: 'Text is required' });
         }
 
-        const wordCount = text.trim().split(/\s+/).length;
+        // Clean input — remove leading | from all lines and trailing dots
+        let cleanedText = text.replace(/^\|\s*/gm, '');
+        cleanedText = cleanedText.replace(/\n\s*\.\s*$/g, '');
+        cleanedText = cleanedText.replace(/\n\.$/g, '');
+
+        const wordCount = cleanedText.trim().split(/\s+/).length;
 
         if (wordCount > MAX_WORDS) {
             return res.status(400).json({
@@ -57,32 +58,25 @@ app.post('/api/humanize', async (req, res) => {
         console.log('   Preserve Keywords: ' + (preservedKeywords.length > 0 ? preservedKeywords.join(', ') : 'none'));
         console.log('='.repeat(60) + '\n');
 
-        // Apply intensity scaling to the humanization process
-        let processedText = text;
-        
-        // Apply humanization based on intensity
-        // Lower intensity = fewer transformations
         const options = {
             preservedKeywords: preservedKeywords,
-            intensity: parseFloat(intensity)
+            intensity: parseFloat(intensity),
+            tone: tone
         };
 
-        const result = await humanizerRoutes.humanizeText ? 
-            await humanizerRoutes.humanizeText(processedText, options) :
-            await fallbackHumanize(processedText, { intensity, tone });
+        let result;
+        if (humanizerRoutes.humanizeText) {
+            result = await humanizerRoutes.humanizeText(cleanedText, options);
+        } else {
+            result = fallbackHumanize(cleanedText, { intensity, tone });
+        }
 
-        // If using the router's method, extract properly
-        const humanizedResult = result.humanized || result.text || processedText;
-        
+        const humanizedResult = result.humanized || result.text || result;
+
         // Calculate intensity-adjusted human score
         let humanScore = result.humanScore || result.metrics?.humanScore || 75;
-        
-        // Adjust score based on intensity
-        if (intensity > 0.7) {
-            humanScore = Math.min(98, humanScore + 5);
-        } else if (intensity < 0.4) {
-            humanScore = Math.max(50, humanScore - 10);
-        }
+        if (intensity > 0.7) humanScore = Math.min(99, humanScore + 3);
+        else if (intensity < 0.4) humanScore = Math.max(50, humanScore - 10);
 
         const processingTime = Date.now() - startTime;
         const aiLikelihood = 100 - humanScore;
@@ -91,15 +85,16 @@ app.post('/api/humanize', async (req, res) => {
         console.log('Complete: ' + processingTime + 'ms');
         console.log('   Human Score: ' + humanScore + '%');
         console.log('   AI Likelihood: ' + aiLikelihood + '%');
-        console.log('   Words: ' + wordCount + ' to ' + humanizedResult.split(/\s+/).length);
-        console.log('   Passes AI Detection: ' + passesAIDetection + '\n');
+        console.log('   Passes AI Detection (<10%): ' + passesAIDetection + '\n');
 
         res.json({
             success: true,
+            humanized: humanizedResult,
             output: humanizedResult,
+            humanScore: Math.round(humanScore),
             metrics: {
                 originalWords: wordCount,
-                humanizedWords: humanizedResult.split(/\s+/).length,
+                humanizedWords: typeof humanizedResult === 'string' ? humanizedResult.replace(/<[^>]+>/g, '').split(/\s+/).length : 0,
                 humanScore: Math.round(humanScore),
                 aiLikelihood: Math.round(aiLikelihood),
                 passesAIDetection: passesAIDetection,
@@ -111,37 +106,23 @@ app.post('/api/humanize', async (req, res) => {
             meta: {
                 tone: tone,
                 intensity: intensity,
-                engine: 'Complete Humanizer Engine v2.0 - 30 Modules Active',
+                engine: 'Complete Humanizer Engine v18.0 - 45 Modules Active',
                 features: [
-                    'Heading Detection',
-                    'Code Line Detection',
-                    'Sentence Tokenizer',
-                    'Burstiness Engine',
-                    'Aggressive Sentence Splitter',
-                    'Short Punch Injector',
-                    'Perplexity Injector',
-                    'Hedging Language Injector',
-                    'Natural Disfluency Injector',
-                    'Parenthetical Aside Injector',
-                    'Afterthought Clause Appender',
-                    'Self-Correction Prepender',
-                    'Rhetorical Question Generator',
-                    'Syntax Structure Variator',
-                    'Adverbial Front-Loader',
-                    'Cleft Construction Builder',
-                    'Sentence Inversion Engine',
-                    'Contraction Engine',
-                    'AI Phrase Remover',
-                    'Formal to Informal Vocabulary Replacer',
-                    'Synonym Pool Substituter',
-                    'Punctuation Variator',
-                    'Em Dash Injector',
-                    'Ellipsis Injector',
-                    'Opinion Injector',
-                    'Transition Naturalizer',
-                    'Grammar Cleanup',
-                    'Tech Keyword Preserver',
-                    'Human Score Calculator'
+                    'Heading Detection', 'Code Line Detection', 'Sentence Tokenizer',
+                    'Burstiness Engine', 'Aggressive Sentence Splitter', 'Short Punch Injector',
+                    'Perplexity Injector', 'Hedging Language Injector', 'Natural Disfluency Injector',
+                    'Parenthetical Aside Injector', 'Afterthought Clause Appender', 'Self-Correction Prepender',
+                    'Rhetorical Question Generator', 'Syntax Structure Variator', 'Adverbial Front-Loader',
+                    'Cleft Construction Builder', 'Sentence Inversion Engine', 'Contraction Engine',
+                    'AI Phrase Remover', 'Formal to Informal Vocabulary Replacer', 'Synonym Pool Substituter',
+                    'Em Dash Injector', 'Ellipsis Injector', 'Opinion Injector',
+                    'Transition Naturalizer', 'Grammar Cleanup', 'Tech Keyword Preserver',
+                    'Human Score Calculator', 'Terminology Rotator', 'Causal Connector Injector',
+                    'Concrete Analogy Injector', 'Safe Fragmenter', 'Paragraph Variator',
+                    'Safe Inversion Engine', 'Active Voice Enforcer', 'Colloquialism Injector',
+                    'Number Humanizer', 'Vocabulary Swapper', 'Noun Swap', 'Verb Swap',
+                    'Adjective Swap', 'Aside Injector', 'Closing Frame Injector',
+                    'Opening Frame Injector', 'Duplicate Phrase Cleaner'
                 ],
                 timestamp: new Date().toISOString()
             }
@@ -158,12 +139,13 @@ app.post('/api/humanize', async (req, res) => {
     }
 });
 
-// ===== FALLBACK HUMANIZE FUNCTION (if module not available) =====
+// ===== FALLBACK HUMANIZE FUNCTION =====
 function fallbackHumanize(text, options = {}) {
     const intensity = options.intensity || 0.8;
-    let result = text;
-    
-    // Basic contractions
+    let result = text.replace(/^\|\s*/gm, '');
+    result = result.replace(/\n\s*\.\s*$/g, '');
+    result = result.replace(/\n\.$/g, '');
+
     result = result.replace(/\bcannot\b/gi, "can't");
     result = result.replace(/\bwill not\b/gi, "won't");
     result = result.replace(/\bdo not\b/gi, "don't");
@@ -173,17 +155,14 @@ function fallbackHumanize(text, options = {}) {
     result = result.replace(/\bI am\b/gi, "I'm");
     result = result.replace(/\byou are\b/gi, "you're");
     result = result.replace(/\bit is\b/gi, "it's");
-    
-    // Remove common AI phrases
+
     const aiPhrases = ['furthermore', 'moreover', 'notably', 'in conclusion'];
     aiPhrases.forEach(phrase => {
-        const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
-        result = result.replace(regex, '');
+        result = result.replace(new RegExp(`\\b${phrase}\\b`, 'gi'), '');
     });
-    
-    // Add some natural disfluency at high intensity
+
     if (intensity > 0.6) {
-        const disfluencies = ['honestly', 'basically', 'literally', 'actually'];
+        const disfluencies = ['honestly', 'basically', 'actually'];
         const words = result.split(' ');
         for (let i = 5; i < words.length; i += 10) {
             if (Math.random() > 0.7) {
@@ -192,47 +171,49 @@ function fallbackHumanize(text, options = {}) {
         }
         result = words.join(' ');
     }
-    
-    // Calculate mock human score
+
     const contractionCount = (result.match(/\b\w+'\w+\b/g) || []).length;
-    const hasDisfluency = result.match(/\b(honestly|basically|literally|actually)\b/gi) !== null;
+    const hasDisfluency = result.match(/\b(honestly|basically|actually)\b/gi) !== null;
     let humanScore = 50 + (contractionCount * 2) + (hasDisfluency ? 10 : 0);
     humanScore = Math.min(95, Math.max(30, humanScore));
-    
-    return {
-        text: result,
-        humanScore: humanScore,
-        metrics: {
-            burstiness: 'medium',
-            hasHeadings: false,
-            hasCode: false,
-            humanScore: humanScore
+
+    const paragraphs = result.split('\n\n');
+    let htmlOutput = '';
+    for (const para of paragraphs) {
+        let trimmed = para.trim().replace(/^\|\s*/, '');
+        if (trimmed) {
+            const isHeading = trimmed.length < 80 && trimmed.match(/^[A-Z]/) &&
+                !trimmed.endsWith('.') && trimmed.split(' ').length <= 8;
+            if (isHeading) {
+                htmlOutput += `<h2 style="font-weight:900;color:#111111;font-size:22px;margin:1.4rem 0 0.5rem 0;line-height:1.3;padding-bottom:3px;border-bottom:2px solid #111111;">${trimmed}</h2>`;
+            } else {
+                htmlOutput += `<p style="margin-bottom:1rem;line-height:1.6;">${trimmed}</p>`;
+            }
         }
+    }
+
+    htmlOutput = htmlOutput.replace(/<p>\s*\.\s*<\/p>$/g, '');
+    htmlOutput = htmlOutput.replace(/<h2[^>]*>\s*\.\s*<\/h2>$/g, '');
+
+    return {
+        humanized: htmlOutput || `<p>${result}</p>`,
+        text: htmlOutput || `<p>${result}</p>`,
+        humanScore: humanScore,
+        metrics: { burstiness: 'medium', hasHeadings: false, hasCode: false, humanScore: humanScore }
     };
 }
 
-// ===== DIRECT HUMANIZE ENDPOINT (for testing individual modules) =====
+// ===== DIRECT HUMANIZE ENDPOINT =====
 app.post('/api/humanize/direct', async (req, res) => {
     try {
         const { text, module } = req.body;
-        
         if (!text || !module) {
-            return res.status(400).json({
-                success: false,
-                error: 'Both text and module name are required'
-            });
+            return res.status(400).json({ success: false, error: 'Both text and module name are required' });
         }
-        
-        // This would call individual modules from humanizer.js if needed
-        // For now, just return the original text
         res.json({
-            success: true,
-            original: text,
-            processed: text,
-            module: module,
+            success: true, original: text, processed: text, module: module,
             note: 'Individual module testing available in full implementation'
         });
-        
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -241,57 +222,37 @@ app.post('/api/humanize/direct', async (req, res) => {
 // ===== BATCH PROCESS ENDPOINT =====
 app.post('/api/humanize/batch', async (req, res) => {
     const startTime = Date.now();
-    
     try {
         const { texts, tone = 'casual', intensity = 0.8 } = req.body;
-        
         if (!texts || !Array.isArray(texts) || texts.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Batch processing requires an array of texts'
-            });
+            return res.status(400).json({ success: false, error: 'Batch processing requires an array of texts' });
         }
-        
         if (texts.length > 10) {
-            return res.status(400).json({
-                success: false,
-                error: 'Maximum 10 texts per batch request'
-            });
+            return res.status(400).json({ success: false, error: 'Maximum 10 texts per batch request' });
         }
-        
         const results = [];
         for (let i = 0; i < texts.length; i++) {
             try {
-                const response = await fetch(`http://localhost:${PORT}/api/humanize`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: texts[i], tone, intensity })
-                });
-                const data = await response.json();
+                const options = { intensity: parseFloat(intensity), tone: tone };
+                let result;
+                if (humanizerRoutes.humanizeText) {
+                    result = await humanizerRoutes.humanizeText(texts[i], options);
+                } else {
+                    result = fallbackHumanize(texts[i], { intensity, tone });
+                }
                 results.push({
-                    index: i,
-                    success: data.success,
-                    output: data.output,
-                    metrics: data.metrics
+                    index: i, success: true,
+                    output: result.humanized || result.text || result,
+                    metrics: result.metrics || { humanScore: result.humanScore || 75 }
                 });
             } catch (err) {
-                results.push({
-                    index: i,
-                    success: false,
-                    error: err.message
-                });
+                results.push({ index: i, success: false, error: err.message });
             }
         }
-        
-        const processingTime = Date.now() - startTime;
-        
         res.json({
-            success: true,
-            batchSize: texts.length,
-            results: results,
-            processingTimeMs: processingTime
+            success: true, batchSize: texts.length, results: results,
+            processingTimeMs: Date.now() - startTime
         });
-        
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -301,68 +262,34 @@ app.post('/api/humanize/batch', async (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
-        engine: 'Complete Humanizer Engine v2.0',
+        engine: 'Complete Humanizer Engine v18.0',
         maxWords: MAX_WORDS,
-        activeModules: 30,
-        modulesList: [
-            'Heading Detection ✓',
-            'Code Line Detection ✓',
-            'Sentence Tokenizer ✓',
-            'Burstiness Engine ✓',
-            'Aggressive Sentence Splitter ✓',
-            'Short Punch Injector ✓',
-            'Perplexity Injector ✓',
-            'Hedging Language Injector ✓',
-            'Natural Disfluency Injector ✓',
-            'Parenthetical Aside Injector ✓',
-            'Afterthought Clause Appender ✓',
-            'Self-Correction Prepender ✓',
-            'Rhetorical Question Generator ✓',
-            'Syntax Structure Variator ✓',
-            'Adverbial Front-Loader ✓',
-            'Cleft Construction Builder ✓',
-            'Sentence Inversion Engine ✓',
-            'Contraction Engine ✓',
-            'AI Phrase Remover ✓',
-            'Formal to Informal Vocabulary Replacer ✓',
-            'Synonym Pool Substituter ✓',
-            'Punctuation Variator ✓',
-            'Em Dash Injector ✓',
-            'Ellipsis Injector ✓',
-            'Opinion Injector ✓',
-            'Transition Naturalizer ✓',
-            'Grammar Cleanup ✓',
-            'Tech Keyword Preserver ✓',
-            'Human Score Calculator ✓'
-        ],
+        activeModules: 45,
+        target: '<10% AI Detection',
+        grammarTarget: '80%+',
         recommendations: {
-            intensity: 'Use 0.7-1.0 for best results (<10% AI detection)',
+            intensity: 'Use 0.8-1.0 for best results (<10% AI detection)',
             tone: 'Use "casual" for most natural output',
             textLength: 'Best results with 100-2000 words',
-            preservedKeywords: 'Add technical terms to prevent modification'
         },
         endpoints: {
             humanize: 'POST /api/humanize',
             batch: 'POST /api/humanize/batch',
             direct: 'POST /api/humanize/direct',
-            health: 'GET /api/health'
+            health: 'GET /api/health',
+            analyze: 'POST /api/analyze'
         }
     });
 });
 
-// ===== ANALYZE ENDPOINT (check AI score without modifying) =====
+// ===== ANALYZE ENDPOINT =====
 app.post('/api/analyze', async (req, res) => {
     try {
         const { text } = req.body;
-        
         if (!text || text.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                error: 'Text is required'
-            });
+            return res.status(400).json({ success: false, error: 'Text is required' });
         }
-        
-        // Simple AI detection heuristics
+
         const aiIndicators = {
             longWords: (text.match(/\b\w{10,}\b/g) || []).length,
             formalTransitions: (text.match(/\b(however|furthermore|moreover|consequently)\b/gi) || []).length,
@@ -370,26 +297,27 @@ app.post('/api/analyze', async (req, res) => {
             repetitiveStructure: countRepetitiveStructures(text),
             averageSentenceLength: calculateAvgSentenceLength(text)
         };
-        
+
         let aiScore = 0;
         if (aiIndicators.longWords > 10) aiScore += 20;
         if (aiIndicators.formalTransitions > 3) aiScore += 25;
         if (aiIndicators.noContractions) aiScore += 30;
         if (aiIndicators.repetitiveStructure > 5) aiScore += 15;
         if (aiIndicators.averageSentenceLength > 20) aiScore += 10;
-        
+
         const humanScore = Math.max(0, 100 - aiScore);
-        
+
         res.json({
             success: true,
             analysis: {
                 humanScore: humanScore,
                 aiLikelihood: 100 - humanScore,
                 indicators: aiIndicators,
-                recommendation: humanScore < 70 ? 'Humanize this text for better authenticity' : 'Text already appears natural'
+                recommendation: humanScore < 70
+                    ? 'Humanize this text for better authenticity'
+                    : 'Text already appears natural'
             }
         });
-        
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -420,17 +348,14 @@ app.get('/', (req, res) => {
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
-    res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-    });
+    res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
 // ===== START SERVER =====
 app.listen(PORT, () => {
     console.log(`
 +--------------------------------------------------------------------------+
-|           COMPLETE AI HUMANIZER v2.0 - 30 MODULES ACTIVE                |
+|           COMPLETE AI HUMANIZER v18.0 - 45 MODULES ACTIVE               |
 +--------------------------------------------------------------------------+
 |                                                                          |
 |  Server:    http://localhost:${PORT}                                       |
@@ -439,37 +364,7 @@ app.listen(PORT, () => {
 |  Analyze:   http://localhost:${PORT}/api/analyze                          |
 |                                                                          |
 +--------------------------------------------------------------------------+
-|  ACTIVE MODULES (30/30):                                                |
-|  ✓ Heading Detection          ✓ Code Line Detection                     |
-|  ✓ Sentence Tokenizer         ✓ Burstiness Engine                       |
-|  ✓ Aggressive Splitter        ✓ Short Punch Injector                    |
-|  ✓ Perplexity Injector        ✓ Hedging Injector                        |
-|  ✓ Disfluency Injector        ✓ Aside Injector                          |
-|  ✓ Afterthought Appender      ✓ Self-Correction                         |
-|  ✓ Rhetorical Questions       ✓ Syntax Variator                         |
-|  ✓ Adverbial Front-Loader     ✓ Cleft Builder                           |
-|  ✓ Inversion Engine           ✓ Contraction Engine                      |
-|  ✓ AI Phrase Remover          ✓ Formal to Informal                      |
-|  ✓ Synonym Substituter        ✓ Punctuation Variator                    |
-|  ✓ Em Dash Injector           ✓ Ellipsis Injector                       |
-|  ✓ Opinion Injector           ✓ Transition Naturalizer                  |
-|  ✓ Grammar Cleanup            ✓ Tech Keyword Preserver                  |
-|  ✓ Human Score Calculator                                                |
-|                                                                          |
-+--------------------------------------------------------------------------+
-|  FEATURES:                                                              |
-|  - No API keys required - 100% free                                     |
-|  - All 30 transformation modules active                                 |
-|  - Burstiness and perplexity injection                                  |
-|  - Natural disfluency and syntax variation                              |
-|  - Heading and code block preservation                                  |
-|  - Adjustable intensity (0-1)                                           |
-|  - Tone control (professional/casual)                                   |
-|  - Batch processing (up to 10 texts)                                    |
-|  - AI score analysis endpoint                                           |
-|                                                                          |
-+--------------------------------------------------------------------------+
-|  TARGET:  <10% AI DETECTION RATE                                        |
+|  TARGET:  <10% AI DETECTION  |  GRAMMAR: 80%+                          |
 |  STATUS:  READY                                                         |
 +--------------------------------------------------------------------------+
     `);
