@@ -46,13 +46,22 @@ function escapeHtml(t) {
 }
 
 function formatHeading(trimmed) {
+    // Clean any periods that leaked into heading
     let clean = trimmed.replace(/\.\s+/g, ' ').replace(/\s+\./g, '').trim();
     const wc = clean.split(' ').length;
-    const fontSize = wc <= 3 ? '26px' : wc <= 6 ? '22px' : '20px';
+    
+    // Determine font size based on word count
+    let fontSize;
+    if (wc <= 3) fontSize = '26px';
+    else if (wc <= 6) fontSize = '22px';
+    else fontSize = '20px';
+    
     const marginTop = wc <= 3 ? '1.8rem' : wc <= 6 ? '1.4rem' : '1.2rem';
-    return '<h2 style="font-weight:900;color:pink;font-size:' + fontSize +
-        ';margin:' + marginTop + ' 0 0.8rem 0;line-height:1.3;padding-bottom:5px;border-bottom:2px solid #111111;">' +
-        escapeHtml(clean) + '</h2>';
+    
+    // Use inline styles with !important to ensure they survive copying
+  return '<h2 style="font-weight:900;color:#4B0C43;font-size:' + fontSize +
+        ';margin:' + marginTop + ' 0 1.5rem 0;line-height:1.3;">' +
+                escapeHtml(clean) + '</h2>';
 }
 
 function preserveStructure(text) {
