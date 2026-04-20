@@ -1,4 +1,5 @@
-﻿// humanizer.js - v17.1 — AI consistently below 10% + Grammar 70%+
+﻿
+// humanizer.js - v17.1 — AI consistently below 10% + Grammar 70%+
 // CHANGES MADE:
 // 1. Increased structuralRewriteParagraph from 2 passes to 3 passes
 // 2. Increased safeFragmenter probability from 0.78 to 0.92

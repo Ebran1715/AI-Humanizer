@@ -1,3 +1,4 @@
+
 // DOM Elements
 const inputTextarea = document.getElementById('inputText');
 const outputDiv = document.getElementById('outputText');
@@ -324,17 +325,15 @@ function generateStyledHtml(htmlContent) {
 <head>
     <meta charset="UTF-8">
     <meta name="generator" content="Humanizer Tool">
-    <title>Humanized Text</title>
     <style>
         /* Preserve all heading styles */
         h2, .heading, [style*="font-weight:900"] {
             font-weight: 900 !important;
-            color: #111111 !important;
+            color: #4B0C43 !important;
             font-size: 26px !important;
             margin: 1.8rem 0 1.5rem 0 !important;
             line-height: 1.3 !important;
-            // padding-bottom: 5px !important;
-            // border-bottom: 2px solid #111111 !important;
+         
         }
         
         /* Style for smaller headings */
@@ -409,7 +408,6 @@ function fallbackRichCopy(htmlContent) {
         heading.style.margin = '1.8rem 0 1.5rem 0';
         heading.style.lineHeight = '1.3';
         heading.style.paddingBottom = '5px';
-        // heading.style.borderBottom = '2px solid #111111';
     });
     
     // Apply styles to all paragraphs
